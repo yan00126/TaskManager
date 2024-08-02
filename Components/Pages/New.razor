@@ -11,7 +11,7 @@
 <div class="row">
   <div class="col-lg-8 offset-lg-2">
     <Subtitle>New Item</Subtitle>
-    <EditForm Model="NewItem" FormName="NewItemForm" class="bg-light p-5 border border-1 mb-5">
+    <EditForm Model="NewItem" FormName="NewItemForm" OnValidSubmit="CreateItemAsync"  class="bg-light p-5 border border-1 mb-5">
       <div class="form-group">
         <label class="form-label">New Task</label> 
         <InputText @bind-Value="NewItem.Task" class="form-control mb-3" placeholder="New Task..." />
@@ -27,7 +27,7 @@
           </div>
           }
         </div>
-      <button class="btn btn-primary">Add Task</button>
+      <button class="btn btn-primary" >Add Task</button>
     </EditForm>
   </div>
 </div>
@@ -64,14 +64,14 @@
   }
 
 
-  private async Task CreateItemAsyc()
+  private async Task CreateItemAsync()
   {
     int id = new Random().Next(100000,900000);
     var sql = "INSERT INTO Item (Id,Task, IsComplete) VALUE (@Id, @Task, @IsComplete)";
     await ds!.SaveData(sql, new { 
       Id= id,
       Task = NewItem.Task,
-      IsComplete = NewItem.Iscomplete
+      IsComplete = NewItem.IsComplete
     });
 
     foreach (var c in NewItem.Categories)
