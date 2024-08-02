@@ -1,4 +1,6 @@
 ﻿@page "/new"
+@rendermode InteractiveServer
+@inject IConfiguration Config
 
 <PageTitle>Task Manager - New Item</PageTitle>
 
@@ -9,24 +11,79 @@
 <div class="row">
   <div class="col-lg-8 offset-lg-2">
     <Subtitle>New Item</Subtitle>
-    <form class="bg-light p-5 border border-1 mb-5">
+    <EditForm Model="NewItem" FormName="NewItemForm" class="bg-light p-5 border border-1 mb-5">
       <div class="form-group">
         <label class="form-label">New Task</label> 
-        <input type="text" class="form-control mb-3" placeholder="New Task..." />
+        <InputText @bind-Value="NewItem.Task" class="form-control mb-3" placeholder="New Task..." />
       </div>
       
       <div class="mb-3">
         <label class="form-label">Categories</label>
+          @foreach (var c in NewItem.Categories)
+          {
           <div class="form-group">
-            <input type="checkbox" id="" class="form-check-input" />
-            <label for="" class="form-check-label">Important</label>
+            <InputCheckbox @bind-Value="c.IsChecked" id="c.Value" class="form-check-input" />
+            <label for="c.Value" class="form-check-label">@c.Text</label>
           </div>
+          }
         </div>
       <button class="btn btn-primary">Add Task</button>
-    </form>
+    </EditForm>
   </div>
 </div>
 
 @code {
+  [SupplyParameterFromForm]
+
+  public Item NewItem {get; set;} = new();
+
+  private List<Category> categories = [];
+  private DataService? ds;
+  
+  protected override async Task OnInitializedAsync()
+  {
+    ds = new(Config.GetConnectionString("default")!);
+
+    categories = await GetCategoriesAsync();
+
+    foreach (var c in categories)
+    {
+      NewItem.Categories.Add(new CheckboxItem {
+        Text = c.Name, 
+        Value = c.Id,
+        IsChecked = false
+      });
+    }
+  }
+
+  private async Task<List<Category>> GetCategoriesAsync()
+  {
+    var sql = "SELECT * FROM Category";
+    return await ds!.LoadData<Category, dynamic>(sql, new {});
+
+  }
+
+
+  private async Task CreateItemAsyc()
+  {
+    int id = new Random().Next(100000,900000);
+    var sql = "INSERT INTO Item (Id,Task, IsComplete) VALUE (@Id, @Task, @IsComplete)";
+    await ds!.SaveData(sql, new { 
+      Id= id,
+      Task = NewItem.Task,
+      IsComplete = NewItem.Iscomplete
+    });
+
+    foreach (var c in NewItem.Categories)
+    {
+      if (c.IsChecked)
+      {
+        await ds!.SaveData("INSERT INTO List(ItemId, CategoryId) VALUE (@ItemId, @CategoryId)", new{
+          ItemId = id,
+          CategoryId = c.Value
+        });
+      }
+    }
+  }
 
 }
